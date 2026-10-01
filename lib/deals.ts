@@ -75,7 +75,6 @@
 // }
 
 
-
 import type { Listing } from "./types"
 
 const STOP_WORDS = new Set([
@@ -85,21 +84,37 @@ const STOP_WORDS = new Set([
 ])
 
 /**
- * STRICT relevance check — ALL significant words from the product name
- * must appear in the listing title. If user searched "Phone Cases",
- * both "phone" AND "cases" (or "case") must be in the title.
- * Handles plurals by also checking the stem (strips trailing s/es).
+ * Marketplaces that receive TRANSLATED (non-English) search queries.
+ * These are trusted to return relevant results because the translation
+ * node already converted the product name to the local language.
+ * We skip the strict English title-matching for these.
  */
+const TRANSLATED_MARKETPLACES = new Set(["1688", "Trendyol", "Hepsiburada", "Amazon TR"])
+
+/**
+ * Marketplaces that receive ENGLISH search queries.
+ * Strict title-matching applies here since both the query and
+ * the listing titles are in English.
+ */
+// Alibaba, Made-in-China → strict matching
+
 function isRelevant(listing: Listing, product: string): boolean {
   if (!listing.title || !product) return true
 
+  // For marketplaces that got a translated search query,
+  // trust the scraper's own search relevance — the translation
+  // node already ensured the right product was searched for
+  if (TRANSLATED_MARKETPLACES.has(listing.marketplace)) return true
+
+  // For English marketplaces, apply strict matching:
+  // ALL significant words from the product name must appear in the title
   const titleLower = listing.title.toLowerCase()
   const productLower = product.toLowerCase().trim()
 
-  // Match the entire product name as one phrase
+  // Try full phrase match first
   if (titleLower.includes(productLower)) return true
 
-  // Also check without trailing s/es for plural tolerance
+  // Try plural tolerance on full phrase
   const stem = productLower.endsWith("es")
     ? productLower.slice(0, -2)
     : productLower.endsWith("s")
@@ -109,7 +124,25 @@ function isRelevant(listing: Listing, product: string): boolean {
   if (titleLower.includes(productLower + "s")) return true
   if (titleLower.includes(productLower + "es")) return true
 
-  return false
+  // Try individual word matching — all significant words must appear
+  const productWords = productLower
+    .split(/[\s,\-\/\\_]+/)
+    .filter((w) => w.length > 2 && !STOP_WORDS.has(w))
+
+  if (productWords.length === 0) return true
+
+  return productWords.every((word) => {
+    if (titleLower.includes(word)) return true
+    const wordStem = word.endsWith("es")
+      ? word.slice(0, -2)
+      : word.endsWith("s")
+        ? word.slice(0, -1)
+        : word
+    if (wordStem.length > 2 && wordStem !== word && titleLower.includes(wordStem)) return true
+    if (titleLower.includes(word + "s")) return true
+    if (titleLower.includes(word + "es")) return true
+    return false
+  })
 }
 
 export function isRealListing(l: Listing): boolean {
@@ -177,7 +210,7 @@ export function formatPrice(price: number | null, currency: string | null): stri
   if (price === null || typeof price !== "number") return "—"
   const formatted = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 4,
   }).format(price)
   return currency ? `${formatted} ${currency}` : formatted
 }
