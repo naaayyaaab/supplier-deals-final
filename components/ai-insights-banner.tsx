@@ -37,7 +37,7 @@
 
 import type { Listing } from "@/lib/types"
 import { PLATFORMS } from "@/lib/platforms"
-import { bestDealFor, listingsFor, toUSD } from "@/lib/deals"
+import { bestDealFor, listingsFor, unitPriceUSD } from "@/lib/deals"
 import { useCurrency, formatConvertedPrice } from "@/lib/currency"
 
 interface AIInsightsBannerProps {
@@ -60,7 +60,7 @@ export function AIInsightsBanner({ products, results, generatedAt }: AIInsightsB
 
   const productSummaries = products.map((product) => {
     const best = bestDealFor(results, product, rates)
-    const bestUSD = best ? toUSD(best.price, best.currency, rates) : null
+    const bestUSD = best ? unitPriceUSD(best, rates) : null
 
     // Use listingsFor (which applies the strict relevance filter) per platform
     const platformsWithData: { name: string; count: number }[] = []
@@ -85,11 +85,12 @@ export function AIInsightsBanner({ products, results, generatedAt }: AIInsightsB
   const lines: string[] = []
 
   if (overallBest && overallBest.best) {
-    const title = overallBest.best.title
-      ? `"${overallBest.best.title.slice(0, 60)}${overallBest.best.title.length > 60 ? "…" : ""}"`
+    const bestTitle = overallBest.best.titleEn || overallBest.best.title
+    const title = bestTitle
+      ? `"${bestTitle.slice(0, 60)}${bestTitle.length > 60 ? "…" : ""}"`
       : overallBest.product
     lines.push(
-      `The standout deal is ${title} on ${overallBest.best.marketplace} at ${formatConvertedPrice(overallBest.bestUSD, "USD")}.`,
+      `The standout deal is ${title} on ${overallBest.best.marketplace} at ${formatConvertedPrice(overallBest.bestUSD, "USD")} per unit.`,
     )
   }
 
@@ -110,7 +111,7 @@ export function AIInsightsBanner({ products, results, generatedAt }: AIInsightsB
     parts.push(`on ${platformDetails}`)
 
     if (s.best && s.bestUSD != null) {
-      parts.push(`— cheapest at ${formatConvertedPrice(s.bestUSD, "USD")} on ${s.best.marketplace}`)
+      parts.push(`— lowest ${formatConvertedPrice(s.bestUSD, "USD")} per unit on ${s.best.marketplace}`)
     }
 
     lines.push(parts.join(" ") + ".")

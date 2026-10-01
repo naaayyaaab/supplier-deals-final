@@ -4,10 +4,11 @@ import { useId, useState } from "react"
 import { ChevronDown } from "lucide-react"
 import type { Listing } from "@/lib/types"
 import { PLATFORMS } from "@/lib/platforms"
-import { listingsFor, bestDealFor, listingKey, countRealListings, toUSD } from "@/lib/deals"
+import { analyzeProduct, listingsFor, listingKey, countRealListings, unitPriceUSD } from "@/lib/deals"
 import { useCurrency, formatConvertedPrice } from "@/lib/currency"
 import { cn } from "@/lib/utils"
 import { PlatformCard } from "./platform-card"
+import { ProductAnalysisView } from "./product-analysis"
 
 interface ProductSectionProps {
   product: string
@@ -21,7 +22,8 @@ export function ProductSection({ product, entryNumber, results, defaultOpen = tr
   const bodyId = useId()
   const { rates } = useCurrency()
 
-  const best = bestDealFor(results, product, rates)
+  const analysis = analyzeProduct(results, product, rates)
+  const best = analysis.overallBest
   const bestKey = best ? listingKey(best) : null
   const total = countRealListings(results, product)
   const perPlatform = PLATFORMS.map((p) => ({
@@ -29,7 +31,7 @@ export function ProductSection({ product, entryNumber, results, defaultOpen = tr
     listings: listingsFor(results, product, p.name, rates),
   }))
   const platformsWithListings = perPlatform.filter((p) => p.listings.length > 0).length
-  const bestUSD = best ? toUSD(best.price, best.currency, rates) : null
+  const bestUSD = best ? unitPriceUSD(best, rates) : null
 
   return (
     <section className="scroll-mt-24">
@@ -68,7 +70,7 @@ export function ProductSection({ product, entryNumber, results, defaultOpen = tr
 
         {best && (
           <span className="hidden shrink-0 text-right sm:block">
-            <span className="block text-[11px] text-muted-ink">Best price</span>
+            <span className="block text-[11px] text-muted-ink">Best price / unit</span>
             <span className="block font-mono text-base font-semibold leading-[22px] tracking-tight text-teal-ink tabular-nums">
               {formatConvertedPrice(bestUSD, "USD")}
             </span>
@@ -84,10 +86,22 @@ export function ProductSection({ product, entryNumber, results, defaultOpen = tr
       </h2>
 
       {open && (
-        <div id={bodyId} className="grid grid-cols-1 items-start gap-4 pt-4 md:grid-cols-2 xl:grid-cols-3">
-          {perPlatform.map(({ platform, listings }) => (
-            <PlatformCard key={platform.name} platform={platform} listings={listings} bestDealKey={bestKey} />
-          ))}
+        <div id={bodyId} className="space-y-8 pt-4">
+          <ProductAnalysisView product={product} analysis={analysis} />
+
+          <section>
+            <div className="mb-3">
+              <h3 className="text-base font-bold leading-6 tracking-tight text-navy">By marketplace</h3>
+              <p className="text-[13px] text-muted-ink">
+                Top 3 matching offers on each platform, ranked by price per unit. Kits are listed above.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {perPlatform.map(({ platform, listings }) => (
+                <PlatformCard key={platform.name} platform={platform} listings={listings} bestDealKey={bestKey} />
+              ))}
+            </div>
+          </section>
         </div>
       )}
     </section>

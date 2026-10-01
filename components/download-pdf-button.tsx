@@ -18,9 +18,9 @@ export function DownloadPdfButton() {
       const el = document.getElementById("report-content")
       if (!el) return
 
-      // 1. Expand all collapsed product sections
+      // 1. Expand sections that opt in to being included in the PDF
       const collapsed = el.querySelectorAll<HTMLButtonElement>(
-        'button[aria-expanded="false"]'
+        'button[aria-expanded="false"][data-pdf-expand]'
       )
       const wasCollapsed: HTMLButtonElement[] = []
       collapsed.forEach((btn) => {
@@ -33,19 +33,9 @@ export function DownloadPdfButton() {
 
       // 2. Temporarily style the element for clean capture
       const originalStyle = el.getAttribute("style") || ""
-      el.style.width = "1100px"
+      el.style.width = "1200px"
       el.style.padding = "20px"
       el.style.background = "white"
-
-      // Force all grids to show properly
-      const grids = el.querySelectorAll<HTMLElement>('[class*="grid"]')
-      const gridStyles: string[] = []
-      grids.forEach((g) => {
-        gridStyles.push(g.getAttribute("style") || "")
-        g.style.display = "grid"
-        g.style.gridTemplateColumns = "1fr 1fr"
-        g.style.gap = "12px"
-      })
 
       // Un-truncate all text
       const truncated = el.querySelectorAll<HTMLElement>('[class*="truncate"], [class*="line-clamp"]')
@@ -64,14 +54,13 @@ export function DownloadPdfButton() {
         scale: 2,
         useCORS: true,
         scrollY: 0,
-        windowWidth: 1140,
+        windowWidth: 1240,
         backgroundColor: "#ffffff",
         logging: false,
       })
 
       // 4. Restore original styles
       el.setAttribute("style", originalStyle)
-      grids.forEach((g, i) => g.setAttribute("style", gridStyles[i]))
       truncated.forEach((t, i) => t.setAttribute("style", truncStyles[i]))
 
       // 5. Re-collapse sections
@@ -141,7 +130,7 @@ export function DownloadPdfButton() {
       type="button"
       onClick={handleDownload}
       disabled={generating}
-      className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line-strong bg-white px-3 text-[13px] font-medium text-navy transition-colors hover:bg-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal disabled:opacity-50"
+      className="flex h-[38px] shrink-0 items-center gap-2 whitespace-nowrap rounded-[10px] border border-ml-line-2 bg-white px-3.5 text-sm font-medium text-ml-ink transition-colors hover:border-ml-ink hover:bg-ml-soft focus-visible:outline-2 focus-visible:outline-ml-green disabled:opacity-50"
     >
       {generating ? (
         <>
@@ -151,7 +140,7 @@ export function DownloadPdfButton() {
       ) : (
         <>
           <Download aria-hidden className="size-3.5" />
-          Download as PDF
+          Download PDF
         </>
       )}
     </button>

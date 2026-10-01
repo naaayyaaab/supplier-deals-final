@@ -14,10 +14,9 @@ interface PriceProps {
  * (2.40, not 2.4). Sub-unit prices keep up to 4 decimals (0.028).
  */
 export function formatAmount(price: number): string {
-  const abs = Math.abs(price)
   return new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 4,
-    maximumFractionDigits: 4,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: Math.abs(price) < 1 ? 4 : 2,
   }).format(price)
 }
 

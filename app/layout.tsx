@@ -1,23 +1,22 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Inter, JetBrains_Mono } from 'next/font/google'
+import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({
+const geist = Geist({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-inter',
+  variable: '--font-geist',
 })
 
-const jetbrainsMono = JetBrains_Mono({
+const geistMono = Geist_Mono({
   subsets: ['latin'],
-  weight: ['400', '500', '600'],
   display: 'swap',
-  variable: '--font-jetbrains',
+  variable: '--font-geist-mono',
 })
 
 export const metadata: Metadata = {
-  title: 'Vector6 — Six-Market Price Comparison',
+  title: 'Market Lens — Supplier Price Comparison',
   description:
     'Compare supplier prices live across Alibaba, 1688, Made-in-China, Trendyol, Hepsiburada and Amazon Turkey. Original currencies, one ledger.',
   generator: 'v0.app',
@@ -34,7 +33,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   colorScheme: 'light',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#0F2747' },
+    { media: '(prefers-color-scheme: light)', color: '#0D1512' },
   ],
 }
 
@@ -44,8 +43,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`light ${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="bg-page font-sans text-navy antialiased">
+    <html lang="en" className={`light ${geist.variable} ${geistMono.variable}`}>
+      <body className="bg-ml-bg font-sans text-ml-ink antialiased">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

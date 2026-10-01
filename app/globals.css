@@ -4,10 +4,29 @@
 
 @custom-variant dark (&:is(.dark *));
 
+::selection { background: #c8f169; color: #0d1512; }
+
 /* ---------- Supplier Deals design tokens ---------- */
 @theme inline {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Market Lens palette */
+  --color-ml-bg: #f3f4f0;        /* page */
+  --color-ml-ink: #0d1512;       /* primary text, dark surfaces */
+  --color-ml-body: #1e2723;      /* long-form text */
+  --color-ml-sub: #3a4540;       /* secondary text */
+  --color-ml-muted: #66706b;     /* labels, metadata */
+  --color-ml-faint: #a9b4ae;     /* text on dark */
+  --color-ml-line: #e4e6e1;      /* card borders */
+  --color-ml-line-2: #cfd3cc;    /* input borders */
+  --color-ml-row: #edefea;       /* row dividers */
+  --color-ml-soft: #f7f8f5;      /* table header, details */
+  --color-ml-well: #e8eae4;      /* segmented control track */
+  --color-ml-lime: #c8f169;      /* primary action */
+  --color-ml-lime-hover: #b9e650;
+  --color-ml-green: #0a7a55;     /* positive, links */
+  --color-ml-green-tint: #eaf6ef;
 
   --color-navy: #0f2747;          /* headings, primary text, header bar */
   --color-teal: #0f8b8d;          /* brand accent — fills/borders only */

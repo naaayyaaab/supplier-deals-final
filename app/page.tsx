@@ -157,13 +157,10 @@
 import { useState } from "react"
 import { CircleAlert } from "lucide-react"
 import type { SupplierDealsResponse } from "@/lib/types"
-import { PLATFORMS } from "@/lib/platforms"
-import { Hero } from "@/components/hero"
+import { SiteHeader } from "@/components/site-header"
 import { SearchForm } from "@/components/search-form"
 import { LoadingState } from "@/components/loading-state"
-import { AIInsightsBanner } from "@/components/ai-insights-banner"
-import { ProductSection } from "@/components/product-section"
-import { DownloadPdfButton } from "@/components/download-pdf-button"
+import { ResultsView } from "@/components/results-view"
 import { CurrencyProvider } from "@/lib/currency"
 
 export default function Page() {
@@ -210,101 +207,33 @@ export default function Page() {
 
   return (
     <CurrencyProvider>
-      <header className="bg-navy text-white">
-        <div className="mx-auto flex h-14 max-w-[1100px] items-center justify-between gap-4 px-4 sm:px-8">
-          <div className="flex min-w-0 items-baseline gap-3">
-            <span className="text-[15px] font-bold tracking-tight">Vector6</span>
-            <span className="hidden truncate text-[13px] text-on-navy-muted sm:inline">Supplier price comparison</span>
-          </div>
-          <div className="hidden items-center gap-2 text-xs text-on-navy-muted sm:flex">
-            <span aria-hidden className="size-1.5 rounded-full bg-[#5ED3D5]" />
-            {PLATFORMS.length} marketplaces · live data
-          </div>
-        </div>
-      </header>
+      <div id="top" className="min-h-dvh bg-ml-bg">
+        <SiteHeader />
 
-      <main className="mx-auto min-h-dvh max-w-[1100px] px-4 pb-20 pt-8 sm:px-8 sm:pt-10">
-        <Hero />
+        <main id="compare" className="mx-auto -mt-16 flex max-w-[1200px] flex-col gap-8 px-6 pb-20">
+          <SearchForm onSubmit={handleSubmit} loading={loading} />
 
-        <div className="mb-4 mt-10">
-          <h2 className="text-xl font-bold leading-7 tracking-tight text-navy">Compare supplier prices</h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted-ink">
-            Search {PLATFORMS.map((p) => p.name).join(", ").replace(/, ([^,]*)$/, " and $1")} in one pass. All prices
-            are automatically converted to USD for easy comparison.
-          </p>
-        </div>
-
-        <SearchForm onSubmit={handleSubmit} loading={loading} />
-
-        <div className="mt-8">
           {error && (
-            <div role="alert" className="mb-6 flex items-start gap-3 rounded-lg border border-danger bg-white px-4 py-3">
+            <div role="alert" className="flex items-start gap-3 rounded-2xl border border-danger/40 bg-white px-5 py-4">
               <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-danger-ink" />
               <div className="text-sm">
-                <p className="font-semibold text-navy">Couldn&apos;t complete the search</p>
-                <p className="mt-0.5 text-ink-2">{error}</p>
+                <p className="font-semibold">The search did not finish</p>
+                <p className="mt-0.5 text-ml-sub">{error}</p>
               </div>
             </div>
           )}
 
           {loading && <LoadingState />}
 
-          {!loading && data && (
-            <div className="space-y-6">
-              {hasResults && (
-                <div className="flex justify-end">
-                  <DownloadPdfButton />
-                </div>
-              )}
+          {!loading && data && hasResults && <ResultsView data={data} products={productList} />}
 
-              <div id="report-content">
-                {hasResults && (
-                  <div className="mb-6">
-                    <AIInsightsBanner
-                      products={productList}
-                      results={data.results}
-                      generatedAt={data.generatedAt}
-                    />
-                  </div>
-                )}
-
-                {hasResults ? (
-                  <div className="space-y-12">
-                    {productList.map((product, i) => (
-                      <ProductSection
-                        key={product}
-                        product={product}
-                        entryNumber={i + 1}
-                        results={data.results}
-                        defaultOpen={i === 0}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-line bg-white px-5 py-6">
-                    <p className="text-sm font-semibold text-navy">No listings returned</p>
-                    <p className="mt-1 text-sm text-muted-ink">
-                      None of the six marketplaces returned results for these products. Try shorter, more common names —
-                      for example &ldquo;Nitrile Gloves&rdquo; instead of a full model number.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
+          {!loading && data && !hasResults && (
+            <p className="rounded-2xl border border-ml-line bg-white px-5 py-4 text-sm text-ml-sub">
+              None of the six marketplaces returned listings for this search. Try a shorter, more common product name.
+            </p>
           )}
-
-          {!loading && !data && !error && (
-            <div className="rounded-lg border border-dashed border-line-strong px-5 py-6">
-              <p className="text-sm font-semibold text-navy">Your comparison will appear here</p>
-              <ol className="mt-2 space-y-1 text-sm text-muted-ink">
-                <li>1. Enter one or more product names above.</li>
-                <li>2. We search all six marketplaces live (2-3 minutes).</li>
-                <li>3. All prices converted to USD — cheapest deals ranked across every platform.</li>
-              </ol>
-            </div>
-          )}
-        </div>
-      </main>
+        </main>
+      </div>
     </CurrencyProvider>
   )
 }

@@ -17,9 +17,10 @@ const SYMBOLS: Record<string, string> = {
 
 export function formatConvertedPrice(price: number | null, code: string | null): string {
   if (price == null || !code) return "—"
+  // 2 decimals normally; sub-unit prices keep up to 4 so $0.0280 stays readable.
   const formatted = new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 4,
-    maximumFractionDigits: 4,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: Math.abs(price) < 1 ? 4 : 2,
   }).format(price)
   const symbol = SYMBOLS[code.toUpperCase()]
   return symbol ? `${symbol}${formatted}` : `${formatted} ${code}`
