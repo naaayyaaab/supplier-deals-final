@@ -298,7 +298,7 @@ export default function Page() {
               <p className="text-sm font-semibold text-navy">Your comparison will appear here</p>
               <ol className="mt-2 space-y-1 text-sm text-muted-ink">
                 <li>1. Enter one or more product names above.</li>
-                <li>2. We search all six marketplaces live (30–90 seconds).</li>
+                <li>2. We search all six marketplaces live (2-3 minutes).</li>
                 <li>3. All prices converted to USD — cheapest deals ranked across every platform.</li>
               </ol>
             </div>

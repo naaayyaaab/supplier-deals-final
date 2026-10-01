@@ -131,7 +131,7 @@ export function SearchForm({ onSubmit, loading }: SearchFormProps) {
       <div className="mt-5 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="flex items-center gap-1.5 text-[13px] text-muted-ink">
           <Clock aria-hidden className="size-3.5 shrink-0" />
-          Live search across 6 marketplaces takes 30–90 seconds.
+          Live search across 6 marketplaces takes 2-3 minutes.
         </p>
         <div className="flex items-center gap-3">
           <span className="hidden items-center gap-1 text-xs text-muted-ink sm:inline-flex" aria-hidden>

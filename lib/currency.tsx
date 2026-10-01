@@ -18,8 +18,8 @@ const SYMBOLS: Record<string, string> = {
 export function formatConvertedPrice(price: number | null, code: string | null): string {
   if (price == null || !code) return "—"
   const formatted = new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
   }).format(price)
   const symbol = SYMBOLS[code.toUpperCase()]
   return symbol ? `${symbol}${formatted}` : `${formatted} ${code}`

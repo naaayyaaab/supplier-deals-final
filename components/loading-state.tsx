@@ -61,7 +61,7 @@ export function LoadingState() {
           </div>
           <div className="shrink-0 text-right">
             <p className="font-mono text-xl font-semibold leading-6 text-navy tabular-nums">{formatElapsed(elapsed)}</p>
-            <p className="text-[11px] text-muted-ink">elapsed · usually 0:30–1:30</p>
+            <p className="text-[11px] text-muted-ink">elapsed · usually 1:30-2:30</p>
           </div>
         </div>
 

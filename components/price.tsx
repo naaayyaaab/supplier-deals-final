@@ -16,8 +16,8 @@ interface PriceProps {
 export function formatAmount(price: number): string {
   const abs = Math.abs(price)
   return new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: abs > 0 && abs < 1 ? 4 : 2,
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
   }).format(price)
 }
 
