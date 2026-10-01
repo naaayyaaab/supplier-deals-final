@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
 // Scraping 6 marketplaces live can take 30-90s. Allow plenty of headroom.
-export const maxDuration = 900
+export const maxDuration = 300
 export const dynamic = "force-dynamic"
 
 const WEBHOOK_URL = process.env.SUPPLIER_DEALS_WEBHOOK_URL
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   }
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 900_000)
+  const timeout = setTimeout(() => controller.abort(), 500_000)
 
   try {
     const upstream = await fetch(WEBHOOK_URL, {
