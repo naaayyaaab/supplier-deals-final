@@ -89,7 +89,7 @@ const STOP_WORDS = new Set([
  * node already converted the product name to the local language.
  * We skip the strict English title-matching for these.
  */
-const TRANSLATED_MARKETPLACES = new Set(["1688", "Trendyol", "Hepsiburada", "Amazon TR"])
+const TRANSLATED_MARKETPLACES = new Set(["1688"])
 
 /**
  * Marketplaces that receive ENGLISH search queries.
