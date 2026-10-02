@@ -36,7 +36,7 @@ export function ResultsView({ data, products }: ResultsViewProps) {
   const product = products[Math.min(active, products.length - 1)]
 
   return (
-    <div className="flex flex-col gap-8">
+    <div id="report-content" className="flex flex-col gap-8">
       <section className="flex flex-col gap-3.5 rounded-[18px] border border-ml-line bg-white p-7">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 text-[13px]">
@@ -105,9 +105,7 @@ export function ResultsView({ data, products }: ResultsViewProps) {
         role={products.length > 1 ? "tabpanel" : undefined}
         aria-labelledby={products.length > 1 ? `tab-${active}` : undefined}
       >
-        <div id="report-content">
-          <ProductResults key={product} product={product} results={data.results} />
-        </div>
+      <ProductResults key={product} product={product} results={data.results} />
       </div>
     </div>
   )
