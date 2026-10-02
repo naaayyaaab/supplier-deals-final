@@ -168,7 +168,7 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<SupplierDealsResponse | null>(null)
 
-  async function handleSubmit(products: string) {
+  async function handleSubmit(products: string[]) {
     setLoading(true)
     setError(null)
     setData(null)

@@ -31,8 +31,25 @@ export interface Listing {
   unitCount?: number | null
   unitLabel?: string | null
   minOrderUnits?: number | null
-  /** price / unitCount, in the listing's own currency. */
+  /** Weight/volume of ONE unit as stated in the title (e.g. 4 for a 4 g syringe). */
+  sizeValue?: number | null
+  sizeUnit?: "g" | "ml" | null
+  /** sizeValue × unitCount: everything the listed price buys. */
+  totalSize?: number | null
+  /**
+   * Comparison price in the listing's own currency, per `priceBasis`:
+   * per piece (price / unitCount), or per g/ml for products sold in
+   * different sizes. null when the product is compared per g/ml but this
+   * listing states no size.
+   */
   unitPrice?: number | null
+  priceBasis?: PriceBasis | null
+  /**
+   * Does this listing state the spec the buyer typed (e.g. "3 g · Pro")?
+   * exact / different (another size or version) / unknown (title silent).
+   * null when no spec was typed or the listing is not the product.
+   */
+  specMatch?: SpecMatch | null
   titleEn?: string | null
   supplierEn?: string | null
   classificationReason?: string | null
@@ -40,10 +57,25 @@ export interface Listing {
 
 export type PackType = "single" | "multi_pack" | "kit" | "bulk" | "accessory" | "other"
 
+export type SpecMatch = "exact" | "different" | "unknown"
+
+/** Properties the buyer typed with the product name, read by the n8n AI (node 2d). */
+export interface ProductSpec {
+  /** e.g. "3 g · Pro version" */
+  label: string
+  size: { value: number; unit: "g" | "ml" } | null
+  properties: string[]
+}
+
+/** What the comparison price is per: one piece, one gram or one millilitre. */
+export type PriceBasis = "unit" | "g" | "ml"
+
 export interface SupplierDealsResponse {
   generatedAt: string
   products: string[]
   results: Listing[]
+  /** Spec per searched product; null when only the product type was typed. */
+  productSpecs?: Record<string, ProductSpec | null>
   bestDeals?: Listing[]
   priceComparison?: unknown
   aiNaturalLanguageReport?: string

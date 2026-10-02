@@ -6,16 +6,20 @@ import { CircleAlert, LoaderCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface SearchFormProps {
-  onSubmit: (products: string) => void
+  /** One entry per product, exactly as typed (commas and slashes kept, e.g. "Suture 3/0"). */
+  onSubmit: (products: string[]) => void
   loading: boolean
 }
 
-const EXAMPLES = ["Composite Resin", "Periodontal Probe", "Nitrile Gloves", "LED Ring Light"]
+const EXAMPLES = ["Composite Resin 4g A2", "Periodontal Probe", "Nitrile Gloves Size M", "LED Ring Light"]
 
-/** Split on commas, slashes or new lines — the same separators the backend accepts. */
+/**
+ * Split pasted text into products on new lines only: commas and slashes
+ * are part of specs ("Composite resin 4g, A2", "Suture 3/0").
+ */
 function splitProducts(value: string) {
   return value
-    .split(/[,/\n]/)
+    .split(/\n/)
     .map((s) => s.trim())
     .filter(Boolean)
 }
@@ -50,7 +54,7 @@ export function SearchForm({ onSubmit, loading }: SearchFormProps) {
     setChips(all)
     setDraft("")
     setError(null)
-    onSubmit(all.join(", "))
+    onSubmit(all)
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -119,7 +123,7 @@ export function SearchForm({ onSubmit, loading }: SearchFormProps) {
             disabled={loading}
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? "products-error" : undefined}
-            placeholder={chips.length ? "Add another product" : "Add a product, press Enter"}
+            placeholder={chips.length ? "Add another product" : "Product, plus size or version if you need one — Enter"}
             className="h-8 min-w-[180px] flex-1 border-0 bg-transparent text-[15px] text-ml-ink outline-none placeholder:text-[#9AA39E] disabled:cursor-not-allowed"
           />
         </div>

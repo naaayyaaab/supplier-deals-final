@@ -2,8 +2,8 @@
 
 import { Fragment, useId, useState } from "react"
 import { ChevronDown, ExternalLink } from "lucide-react"
-import type { Listing } from "@/lib/types"
-import { offerKind, packLabel, savingsVs, unitPriceUSD } from "@/lib/deals"
+import type { Listing, PriceBasis } from "@/lib/types"
+import { offerKind, packLabel, priceBasisOf, savingsVs, sizeLabel, unitPriceUSD } from "@/lib/deals"
 import { useCurrency, formatConvertedPrice } from "@/lib/currency"
 import { cn } from "@/lib/utils"
 import { formatAmount } from "./price"
@@ -21,7 +21,7 @@ const TYPE_STYLE = {
 export const OFFER_COLUMNS =
   "md:grid-cols-[minmax(0,2.6fr)_minmax(0,1.1fr)_minmax(0,1.1fr)_minmax(0,1.2fr)_84px]"
 
-export function OffersHeader() {
+export function OffersHeader({ basis = "unit" }: { basis?: PriceBasis }) {
   return (
     <div
       role="row"
@@ -34,7 +34,7 @@ export function OffersHeader() {
       <span role="columnheader">Marketplace</span>
       <span role="columnheader">Offer</span>
       <span role="columnheader" className="text-right">
-        Price per unit
+        Price per {basis}
       </span>
       <span role="columnheader">
         <span className="sr-only">Actions</span>
@@ -70,6 +70,8 @@ export function OfferRow({
   const kind = offerKind(listing)
   const saving = bestSingle && listing !== bestSingle ? savingsVs(listing, bestSingle, rates) : null
   const barPct = unitUSD != null && maxUnitUSD > 0 ? Math.max(4, Math.round(Math.sqrt(unitUSD / maxUnitUSD) * 100)) : 0
+  const basis = priceBasisOf(listing)
+  const size = sizeLabel(listing)
   const sub =
     listing.minOrderUnits && listing.minOrderUnits > 1 && listing.packType !== "bulk"
       ? `Min. ${listing.minOrderUnits} units`
@@ -107,16 +109,28 @@ export function OfferRow({
           <span className={cn("inline-flex h-6 items-center whitespace-nowrap rounded-md px-[9px] text-xs font-semibold", TYPE_STYLE[kind])}>
             {packLabel(listing) ?? "Unclassified"}
           </span>
+          {listing.specMatch === "exact" && (
+            <span className="ml-1.5 inline-flex h-6 items-center whitespace-nowrap rounded-md bg-ml-ink px-[9px] text-xs font-semibold text-ml-lime">
+              Exact spec
+            </span>
+          )}
           {sub && <span className="mt-[5px] block truncate text-[13px] text-ml-muted">{sub}</span>}
         </div>
 
         {/* Price per unit */}
         <div role="cell" className="flex flex-col items-start gap-1 md:items-end md:text-right">
-          <span className="font-mono text-[17px] font-semibold tracking-[-0.02em]">{formatConvertedPrice(unitUSD, "USD")}</span>
-          {listing.price != null && (listing.currency?.toUpperCase() !== "USD" || unitCount > 1) && (
+          {unitUSD != null ? (
+            <span className="font-mono text-[17px] font-semibold tracking-[-0.02em]">
+              {formatConvertedPrice(unitUSD, "USD")}
+              {basis !== "unit" && <span className="ml-0.5 text-xs font-medium text-ml-muted">/ {basis}</span>}
+            </span>
+          ) : (
+            <span className="text-sm font-medium text-ml-muted">Size not stated</span>
+          )}
+          {listing.price != null && (listing.currency?.toUpperCase() !== "USD" || unitCount > 1 || basis !== "unit") && (
             <span className="text-xs tabular-nums text-ml-muted">
               {formatAmount(listing.price)} {listing.currency}
-              {unitCount > 1 ? ` for ${unitCount}` : ""}
+              {basis !== "unit" ? (size ? ` for ${size}` : "") : unitCount > 1 ? ` for ${unitCount}` : ""}
             </span>
           )}
           {isLowest && (
@@ -174,6 +188,7 @@ export function OfferRow({
         >
           <Detail label="Original title" value={listing.title} wide />
           <Detail label="Supplier" value={listing.supplier} />
+          <Detail label="Size" value={size} />
           <Detail label="Min. order" value={listing.moq} />
           <Detail label="Price shown" value={listing.discount} />
           <Detail label="Rating" value={typeof listing.rating === "number" ? `${listing.rating.toFixed(1)} / 5` : listing.rating} />

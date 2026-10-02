@@ -2,7 +2,7 @@
 
 import { useId, useMemo, useState } from "react"
 import { ChevronDown, ExternalLink } from "lucide-react"
-import type { Listing } from "@/lib/types"
+import type { Listing, PriceBasis, ProductSpec } from "@/lib/types"
 import { PLATFORMS } from "@/lib/platforms"
 import { type ProductAnalysis, analyzeProduct, isRealListing, listingKey, packLabel, unitPriceUSD } from "@/lib/deals"
 import { useCurrency, formatConvertedPrice } from "@/lib/currency"
@@ -11,21 +11,23 @@ import { OfferRow, OffersHeader } from "./offers-table"
 import { platformTheme } from "./platform-theme"
 import { MpLogo } from "./mp-logo"
 
-type OfferFilter = "single" | "deal" | "kit" | "all"
+type OfferFilter = "exact" | "single" | "deal" | "kit" | "all"
 type SortKey = "asc" | "desc" | "mp"
 type View = "ranked" | "mp"
 
-const FILTER_NAMES: Record<OfferFilter, string> = { single: "single-piece", deal: "pack or bulk", kit: "kit", all: "" }
+const FILTER_NAMES: Record<OfferFilter, string> = { exact: "exact-spec", single: "single-piece", deal: "pack or bulk", kit: "kit", all: "" }
 
 interface ProductResultsProps {
   product: string
   results: Listing[]
+  /** What the buyer typed beyond the product type (size, version ...); null if nothing. */
+  spec?: ProductSpec | null
 }
 
-export function ProductResults({ product, results }: ProductResultsProps) {
+export function ProductResults({ product, results, spec = null }: ProductResultsProps) {
   const { rates } = useCurrency()
   const analysis = analyzeProduct(results, product, rates)
-  const { singles, deals, kits, excluded } = analysis
+  const { singles, deals, kits, excluded, basis, exact } = analysis
 
   const [filter, setFilter] = useState<OfferFilter>(singles.length > 0 ? "single" : deals.length > 0 ? "deal" : "all")
   const [sort, setSort] = useState<SortKey>("asc")
@@ -37,13 +39,22 @@ export function ProductResults({ product, results }: ProductResultsProps) {
   const marketplacesWithMatches = new Set(allMatching.map((l) => l.marketplace)).size
 
   const rows = useMemo(() => {
-    const base = filter === "single" ? singles : filter === "deal" ? deals : filter === "kit" ? kits : [...singles, ...deals, ...kits]
+    const base =
+      filter === "exact"
+        ? exact
+        : filter === "single"
+          ? singles
+          : filter === "deal"
+            ? deals
+            : filter === "kit"
+              ? kits
+              : [...singles, ...deals, ...kits]
     const order = PLATFORMS.map((p) => p.name as string)
     return [...base].sort((a, b) =>
       sort === "mp" ? order.indexOf(a.marketplace) - order.indexOf(b.marketplace) : sort === "asc" ? unit(a) - unit(b) : unit(b) - unit(a),
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, sort, singles, deals, kits, rates])
+  }, [filter, sort, exact, singles, deals, kits, rates])
 
   const maxUnitUSD = Math.max(0.0001, ...rows.map((l) => (Number.isFinite(unit(l)) ? unit(l) : 0)))
   const lowestOf = (list: Listing[]) => list.reduce<Listing | null>((m, l) => (!m || unit(l) < unit(m) ? l : m), null)
@@ -54,6 +65,12 @@ export function ProductResults({ product, results }: ProductResultsProps) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 className="text-[32px] font-semibold tracking-[-0.03em]">{product}</h2>
+          {spec && (
+            <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-ml-sub">
+              Your spec
+              <span className="rounded-md bg-ml-ink px-2 py-0.5 text-xs font-semibold text-ml-lime">{spec.label}</span>
+            </p>
+          )}
           <p className="mt-2 text-sm text-ml-sub">
             {allMatching.length} matching {allMatching.length === 1 ? "listing" : "listings"} on {marketplacesWithMatches} of{" "}
             {PLATFORMS.length} marketplaces
@@ -81,6 +98,8 @@ export function ProductResults({ product, results }: ProductResultsProps) {
         </div>
       </div>
 
+      {spec && <ExactMatches spec={spec} exact={exact} basis={basis} />}
+
       <Verdict analysis={analysis} />
 
       {/* Toolbar */}
@@ -90,6 +109,7 @@ export function ProductResults({ product, results }: ProductResultsProps) {
           value={filter}
           onChange={setFilter}
           options={[
+            ...(spec ? [{ value: "exact" as const, label: "Exact spec", count: exact.length }] : []),
             { value: "single", label: "Single pieces", count: singles.length },
             { value: "deal", label: "Packs & bulk", count: deals.length },
             { value: "kit", label: "Kits & sets", count: kits.length },
@@ -113,8 +133,8 @@ export function ProductResults({ product, results }: ProductResultsProps) {
               onChange={(e) => setSort(e.target.value as SortKey)}
               className="h-[42px] cursor-pointer rounded-xl border border-ml-line-2 bg-white px-3 text-sm text-ml-ink focus:border-ml-ink focus:outline-none"
             >
-              <option value="asc">Price per unit, low to high</option>
-              <option value="desc">Price per unit, high to low</option>
+              <option value="asc">Price per {basis}, low to high</option>
+              <option value="desc">Price per {basis}, high to low</option>
               <option value="mp">Marketplace</option>
             </select>
           </label>
@@ -129,7 +149,7 @@ export function ProductResults({ product, results }: ProductResultsProps) {
 
       {/* Offers */}
       <div role="table" className="overflow-hidden rounded-2xl border border-ml-line bg-white">
-        <OffersHeader />
+        <OffersHeader basis={basis} />
         {view === "ranked" ? (
           rows.length > 0 ? (
             rows.map((l, i) => (
@@ -164,7 +184,7 @@ export function ProductResults({ product, results }: ProductResultsProps) {
                   <span className="text-xs text-ml-muted">{p.country}</span>
                   <span className="ml-auto text-[13px] text-ml-muted">
                     {low
-                      ? `${here.length} ${here.length === 1 ? "offer" : "offers"} · from ${formatConvertedPrice(unitPriceUSD(low, rates), "USD")} per unit`
+                      ? `${here.length} ${here.length === 1 ? "offer" : "offers"} · from ${formatConvertedPrice(unitPriceUSD(low, rates), "USD")} per ${basis}`
                       : matchingHere
                         ? `${matchingHere} matching, other offer type`
                         : `${returnedHere} returned, none are ${product}`}
@@ -190,19 +210,58 @@ export function ProductResults({ product, results }: ProductResultsProps) {
   )
 }
 
+/* ---------------------------------------------------------- Exact matches */
+
+/**
+ * Listings that state exactly the spec the buyer typed, shown above the
+ * normal results. When none do, says so — the normal results below then
+ * act as the closest alternatives (other sizes or versions).
+ */
+function ExactMatches({ spec, exact, basis }: { spec: ProductSpec; exact: Listing[]; basis: PriceBasis }) {
+  const { rates } = useCurrency()
+  const shown = exact.slice(0, 5)
+  const maxUnitUSD = Math.max(0.0001, ...shown.map((l) => unitPriceUSD(l, rates) ?? 0))
+
+  return (
+    <section aria-label="Exact matches" className="overflow-hidden rounded-2xl border border-ml-line bg-white">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-ml-line px-5 py-4">
+        <h3 className="text-base font-semibold">Exact match for {spec.label}</h3>
+        <span className="text-[13px] text-ml-muted">
+          {exact.length > 0
+            ? `${exact.length} ${exact.length === 1 ? "listing states" : "listings state"} this spec · other sizes and versions are below`
+            : "None found"}
+        </span>
+      </div>
+      {shown.length > 0 ? (
+        <div role="table">
+          <OffersHeader basis={basis} />
+          {shown.map((l, i) => (
+            <OfferRow key={`${listingKey(l)}-${i}`} listing={l} isLowest={i === 0} maxUnitUSD={maxUnitUSD} />
+          ))}
+        </div>
+      ) : (
+        <p className="px-5 py-4 text-sm text-ml-sub">
+          No listing states exactly {spec.label}. The results below are the same product in other sizes or versions, or
+          listings whose title does not say — check the supplier page before buying.
+        </p>
+      )}
+    </section>
+  )
+}
+
 /* ---------------------------------------------------------------- Verdict */
 
 function Verdict({ analysis }: { analysis: ProductAnalysis }) {
   const { rates } = useCurrency()
-  const { bestSingle, bestDeal, dealSavingsPct, overallBest } = analysis
+  const { bestSingle, bestDeal, dealSavingsPct, overallBest, basis } = analysis
 
   let recommendation = "No comparable offers were found for this product."
   if (overallBest && overallBest === bestDeal && bestSingle) {
-    recommendation = `Buy the ${packLabel(bestDeal)?.toLowerCase() ?? "deal"} on ${bestDeal.marketplace}: ${dealSavingsPct}% less per unit than the cheapest single piece${
+    recommendation = `Buy the ${packLabel(bestDeal)?.toLowerCase() ?? "deal"} on ${bestDeal.marketplace}: ${dealSavingsPct}% less per ${basis} than the cheapest single piece${
       bestDeal.minOrderUnits ? `, if you can order ${bestDeal.minOrderUnits} or more` : ""
     }.`
   } else if (overallBest && overallBest === bestSingle && bestDeal) {
-    recommendation = `Buy single pieces on ${bestSingle.marketplace}. No pack or bulk offer beats it per unit.`
+    recommendation = `Buy single pieces on ${bestSingle.marketplace}. No pack or bulk offer beats it per ${basis}.`
   } else if (overallBest && overallBest === bestSingle) {
     recommendation = `Only single-piece offers were found. ${bestSingle.marketplace} is the lowest.`
   } else if (overallBest && overallBest === bestDeal) {
@@ -214,7 +273,7 @@ function Verdict({ analysis }: { analysis: ProductAnalysis }) {
     {
       label: "Cheapest pack or bulk deal",
       l: bestDeal,
-      note: dealSavingsPct != null ? `${dealSavingsPct}% below the cheapest single piece` : bestDeal && bestSingle ? "Not cheaper per unit than single pieces" : "",
+      note: dealSavingsPct != null ? `${dealSavingsPct}% below the cheapest single piece` : bestDeal && bestSingle ? `Not cheaper per ${basis} than single pieces` : "",
       good: dealSavingsPct != null,
     },
   ].filter((c) => c.l)
@@ -228,7 +287,7 @@ function Verdict({ analysis }: { analysis: ProductAnalysis }) {
             <span className="font-mono text-[34px] font-semibold tracking-[-0.03em]">
               {formatConvertedPrice(unitPriceUSD(l!, rates), "USD")}
             </span>
-            <span className="text-[13px] text-ml-muted">per unit</span>
+            <span className="text-[13px] text-ml-muted">per {basis}</span>
           </div>
           <span className="flex items-center gap-1.5 text-sm text-ml-sub">
             {packLabel(l!) ?? "Listing"} · <MpLogo name={l!.marketplace} size={20} />
