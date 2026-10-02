@@ -75,7 +75,7 @@
 // }
 
 
-import type { Listing } from "./types"
+import type { Listing, PriceBasis } from "./types"
 
 const STOP_WORDS = new Set([
   "a", "an", "the", "and", "or", "for", "of", "to", "in", "on", "by",
@@ -175,15 +175,35 @@ export function offerKind(l: Listing): OfferKind {
   return "single"
 }
 
-/** Price of ONE unit of the searched product, in USD (falls back to native price while rates load). */
+/** What the listing's comparison price is per: "unit", "g" or "ml". */
+export function priceBasisOf(l: Listing): PriceBasis {
+  return l.priceBasis === "g" || l.priceBasis === "ml" ? l.priceBasis : "unit"
+}
+
+/**
+ * Comparison price in USD: per piece, or per g/ml when the product is sold
+ * in different sizes (falls back to native price while rates load).
+ * null when the product is compared per g/ml and this listing states no size.
+ */
 export function unitPriceUSD(l: Listing, rates: Record<string, number> | null): number | null {
-  const unit = typeof l.unitPrice === "number" ? l.unitPrice : l.price
-  return toUSD(unit, l.currency, rates)
+  if (typeof l.unitPrice === "number") return toUSD(l.unitPrice, l.currency, rates)
+  if (priceBasisOf(l) !== "unit") return null
+  return toUSD(l.price, l.currency, rates)
+}
+
+/** e.g. "30 g" — what the listed price buys, when the title states a size. */
+export function sizeLabel(l: Listing): string | null {
+  return l.totalSize && l.sizeUnit ? `${formatPrice(l.totalSize, null)} ${l.sizeUnit}` : null
 }
 
 function byUnitPriceUSD(rates: Record<string, number> | null) {
-  return (a: Listing, b: Listing) =>
-    (unitPriceUSD(a, rates) ?? Number.POSITIVE_INFINITY) - (unitPriceUSD(b, rates) ?? Number.POSITIVE_INFINITY)
+  return (a: Listing, b: Listing) => {
+    const x = unitPriceUSD(a, rates)
+    const y = unitPriceUSD(b, rates)
+    // No comparable price sorts last.
+    if (x == null || y == null) return x == null ? (y == null ? 0 : 1) : -1
+    return x - y
+  }
 }
 
 /** Short English label for what the price buys, e.g. "Pack of 4", "Bulk · min 100". */
@@ -213,6 +233,12 @@ export interface ProductAnalysis {
   dealSavingsPct: number | null
   /** Lowest unit price across singles and deals (kits are not comparable per unit). */
   overallBest: Listing | null
+  /** What offers of this product are compared per: piece, gram or ml. */
+  basis: PriceBasis
+  /** Single pieces and deals that state exactly the spec the buyer typed, cheapest first. */
+  exact: Listing[]
+  /** Cheapest exact-spec offer; null when none was found or no spec was typed. */
+  bestExact: Listing | null
 }
 
 /** Apple-to-apple comparison for one product: every offer is ranked by its USD unit price. */
@@ -230,8 +256,11 @@ export function analyzeProduct(
   const kits = offers.filter((l) => offerKind(l) === "kit").sort(sort)
   const excluded = forProduct.filter((l) => l.aiClassified && l.relevant === false)
 
-  const bestSingle = singles[0] ?? null
-  const bestDeal = deals[0] ?? null
+  // Listings with no comparable price (no size stated for a per-g/ml
+  // product) are listed but can never be the best offer.
+  const comparable = (l: Listing) => unitPriceUSD(l, rates) != null
+  const bestSingle = singles.find(comparable) ?? null
+  const bestDeal = deals.find(comparable) ?? null
   const singleUSD = bestSingle ? unitPriceUSD(bestSingle, rates) : null
   const dealUSD = bestDeal ? unitPriceUSD(bestDeal, rates) : null
   const dealSavingsPct =
@@ -239,7 +268,12 @@ export function analyzeProduct(
 
   const overallBest = [bestSingle, bestDeal].filter((l): l is Listing => l !== null).sort(sort)[0] ?? null
 
-  return { singles, deals, kits, excluded, bestSingle, bestDeal, dealSavingsPct, overallBest }
+  const basis = priceBasisOf([...singles, ...deals][0] ?? offers[0] ?? ({} as Listing))
+
+  const exact = [...singles, ...deals].filter((l) => l.specMatch === "exact").sort(sort)
+  const bestExact = exact[0] ?? null
+
+  return { singles, deals, kits, excluded, bestSingle, bestDeal, dealSavingsPct, overallBest, basis, exact, bestExact }
 }
 
 /** % cheaper per unit than `reference` (positive = saves). */

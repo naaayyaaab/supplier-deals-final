@@ -17,15 +17,18 @@ export async function POST(request: Request) {
     )
   }
 
-  let products: string
+  // One entry per product. A plain string is still accepted (one product per line).
+  let products: string[]
   try {
     const body = await request.json()
-    products = typeof body?.products === "string" ? body.products.trim() : ""
+    const raw: unknown = body?.products
+    const list = Array.isArray(raw) ? raw : typeof raw === "string" ? raw.split(/\n/) : []
+    products = list.map((p) => String(p ?? "").trim()).filter(Boolean)
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 })
   }
 
-  if (!products) {
+  if (products.length === 0) {
     return NextResponse.json({ error: "Please enter at least one product name." }, { status: 400 })
   }
 

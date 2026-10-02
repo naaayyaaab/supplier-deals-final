@@ -64,7 +64,7 @@ export function SiteHeader() {
         </h1>
         <p className="mt-4 max-w-[640px] text-pretty text-[17px] leading-[1.55] text-ml-faint">
           Searches {PLATFORMS.map((p) => p.name).join(", ").replace(/, ([^,]*)$/, " and $1")} at once. Look‑alike
-          products are removed, and every offer is compared per unit in USD.
+          products are removed, and every offer is compared per unit in USD (per gram or ml when sizes differ).
         </p>
       </div>
     </div>

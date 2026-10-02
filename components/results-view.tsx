@@ -52,7 +52,7 @@ export function ResultsView({ data, products }: ResultsViewProps) {
           {data.aiNaturalLanguageReport?.trim() || fallbackSummary(data, products, rates)}
         </p>
         <p className="text-[13px] text-ml-muted">
-          Prices converted to USD and compared per unit
+          Prices converted to USD and compared per unit, or per gram/ml when sizes differ
           {ratesError ? " — exchange rates unavailable, showing original amounts" : ""}. Confirm price and minimum order on
           the supplier page before buying.
         </p>
@@ -61,7 +61,7 @@ export function ResultsView({ data, products }: ResultsViewProps) {
       {products.length > 1 && (
         <div role="tablist" aria-label="Products" className="flex flex-wrap gap-3">
           {products.map((p, i) => {
-            const best = analyzeProduct(data.results, p, rates).overallBest
+            const { overallBest: best, basis } = analyzeProduct(data.results, p, rates)
             const selected = i === active
             return (
               <button
@@ -88,7 +88,7 @@ export function ResultsView({ data, products }: ResultsViewProps) {
                       <span className={cn("font-mono font-semibold", selected ? "text-ml-lime" : "text-ml-ink")}>
                         {formatConvertedPrice(unitPriceUSD(best, rates), "USD")}
                       </span>{" "}
-                      per unit · {best.marketplace}
+                      per {basis} · {best.marketplace}
                     </>
                   ) : (
                     "No matching listings"
@@ -106,7 +106,12 @@ export function ResultsView({ data, products }: ResultsViewProps) {
         aria-labelledby={products.length > 1 ? `tab-${active}` : undefined}
       >
         <div id="report-content">
-          <ProductResults key={product} product={product} results={data.results} />
+          <ProductResults
+            key={product}
+            product={product}
+            results={data.results}
+            spec={data.productSpecs?.[product] ?? null}
+          />
         </div>
       </div>
     </div>
@@ -117,9 +122,9 @@ export function ResultsView({ data, products }: ResultsViewProps) {
 function fallbackSummary(data: SupplierDealsResponse, products: string[], rates: Record<string, number> | null) {
   return products
     .map((p) => {
-      const best = analyzeProduct(data.results, p, rates).overallBest
+      const { overallBest: best, basis } = analyzeProduct(data.results, p, rates)
       return best
-        ? `${p}: lowest ${formatConvertedPrice(unitPriceUSD(best, rates), "USD")} per unit on ${best.marketplace}.`
+        ? `${p}: lowest ${formatConvertedPrice(unitPriceUSD(best, rates), "USD")} per ${basis} on ${best.marketplace}.`
         : `${p}: no matching listings found.`
     })
     .join(" ")
